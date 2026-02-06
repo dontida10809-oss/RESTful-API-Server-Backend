@@ -54,13 +54,11 @@ export const createTodo = async (req: Request, res: Response) => {
   }
 }
 
-
 export const updateTodo = async (req: Request, res: Response) => {
   try {
     const { id } = req.params
     let { title, completed } = req.body
 
-    // แปลง completed ให้เป็น boolean ถ้ามีส่งมา
     if (completed !== undefined) {
       completed = completed === true || completed === 'true'
     }
@@ -83,11 +81,39 @@ export const updateTodo = async (req: Request, res: Response) => {
 
     res.json(result.rows[0])
   } catch (error) {
-    console.error('UPDATE TODO ERROR:', error)
     res.status(500).json({ message: 'Server error' })
   }
 }
 
+export const patchTodo = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params
+    const { completed } = req.body
+
+    if (completed === undefined) {
+      return res.status(400).json({ message: 'Nothing to update' })
+    }
+
+    const result = await pool.query(
+      `
+      UPDATE todos
+      SET completed = $1
+      WHERE id = $2
+      RETURNING *
+      `,
+      [completed, id]
+    )
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Todo not found' })
+    }
+
+    res.json(result.rows[0])
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ message: 'Server error' })
+  }
+}
 
 export const deleteTodo = async (req: Request, res: Response) => {
   try {
